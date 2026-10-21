@@ -53,9 +53,9 @@ def chat(
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
     if not reasoning:
-        # Thinking models (Gemini 2.5) otherwise spend the token budget on reasoning tokens.
+        # Thinking models otherwise spend the token budget on reasoning tokens ("none" is rejected by some Gemini models).
         if config.IS_GEMINI:
-            kwargs["reasoning_effort"] = "none"
+            kwargs["reasoning_effort"] = "minimal"
         else:
             kwargs["extra_body"] = {"reasoning": {"enabled": False}}
 

@@ -6,6 +6,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _load_streamlit_secrets() -> None:
+    """Streamlit Cloud: copy top-level secrets into the environment (env / .env values win)."""
+    try:
+        import streamlit as st
+
+        for key, value in st.secrets.items():
+            if isinstance(value, (str, int, float, bool)):
+                os.environ.setdefault(key, str(value))
+    except Exception:  # streamlit missing or no secrets.toml
+        pass
+
+
+_load_streamlit_secrets()
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # --- LLM (any OpenAI-compatible API: Gemini direct or OpenRouter) ---
@@ -13,7 +28,7 @@ GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"))
 IS_GEMINI = "generativelanguage.googleapis.com" in LLM_BASE_URL
 LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
-_DEFAULT_MODEL = "gemini-3.8-flash" if IS_GEMINI else "google/gemini-2.5-flash"
+_DEFAULT_MODEL = "gemini-3.5-flash-lite" if IS_GEMINI else "google/gemini-2.5-flash"
 
 # Each agent can have its own model and API key (<AGENT>_MODEL / <AGENT>_API_KEY), falling back to LLM_API_KEY.
 # Orchestrator, Specialist and Figure need vision. Validator / Compliance are text-only.
