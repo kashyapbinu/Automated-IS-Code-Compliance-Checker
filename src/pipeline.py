@@ -1,6 +1,6 @@
 """classify -> extract -> (human verify) -> validate -> retrieve + comply -> report.
 
-Each stage is a separate function so the UI can pause between them for the engineer.
+Stage functions used as the nodes of the LangGraph workflow in src/graph.py.
 """
 from dataclasses import asdict
 from typing import List, Optional
@@ -55,18 +55,16 @@ def build_report(extraction: Extraction, validation: Optional[validator.Validati
 
 def run_all(images: List[Image.Image], drawing_type: Optional[DrawingType] = None, use_llm_validator: bool = True,
             source_name: str = "") -> dict:
-    """Non-interactive run (CLI / tests): no human verification step."""
-    urls = image_urls(images)
-    classification = classify(urls)
-    dtype = drawing_type or classification.drawing_type
-    extraction = extract(urls, dtype)
-    validation = validate(extraction, use_llm=use_llm_validator)
-    results = comply(extraction, validation)
-    md = build_report(extraction, validation, results, classification, overridden=drawing_type is not None and drawing_type != classification.drawing_type, source_name=source_name)
-    return {
-        "classification": classification,
-        "extraction": extraction,
-        "validation": validation,
-        "results": results,
-        "report_markdown": md,
-    }
+    """Non-interactive run (CLI / tests): the LangGraph workflow in auto mode, no human verification step."""
+    import uuid
+
+    from src.graph import build_graph
+
+    state = {"urls": image_urls(images), "human": False, "use_llm_validator": use_llm_validator,
+             "source_name": source_name}
+    if drawing_type:
+        state["drawing_type"] = drawing_type
+    out = build_graph().invoke(state, {"configurable": {"thread_id": uuid.uuid4().hex}})
+    if out.get("error"):
+        raise ValueError(out["error"])
+    return {key: out[key] for key in ("classification", "extraction", "validation", "results", "report_markdown")}

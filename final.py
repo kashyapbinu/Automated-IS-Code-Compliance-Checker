@@ -1,6 +1,7 @@
 """Streamlit UI: upload -> classify -> extract -> engineer verifies -> validate -> RAG compliance -> report."""
 import os
 import time
+import uuid
 
 import pandas as pd
 import streamlit as st
@@ -21,6 +22,45 @@ def get_retriever():
     from src.rag.retriever import Retriever
 
     return Retriever()
+
+
+@st.cache_resource
+def get_graph():
+    from src.graph import build_graph
+
+    return build_graph()
+
+
+def graph_config(retriever=None) -> dict:
+    configurable = {"thread_id": st.session_state.thread_id}
+    if retriever is not None:
+        configurable["retriever"] = retriever
+    return {"configurable": configurable}
+
+
+def paused_at() -> tuple:
+    if "thread_id" not in st.session_state:
+        return ()
+    return get_graph().get_state(graph_config()).next
+
+
+def advance(resume, restart_state: dict, retriever=None) -> dict:
+    """Resume the LangGraph run if it is paused where `resume` belongs, otherwise start a new run
+    from `restart_state` (e.g. after the engineer changed the drawing type). Returns the graph state."""
+    from src.graph import Command
+
+    graph = get_graph()
+    node = "confirm_type" if isinstance(resume, str) else "human_review"
+    if paused_at() == (node,):
+        graph.invoke(Command(resume=resume), graph_config(retriever))
+    else:
+        st.session_state.thread_id = uuid.uuid4().hex
+        graph.invoke({"urls": st.session_state.urls, "human": True,
+                      "source_name": ", ".join(st.session_state.get("file_names", ())), **restart_state},
+                     graph_config(retriever))
+        if not isinstance(resume, str) and paused_at() == ("human_review",):
+            graph.invoke(Command(resume=resume), graph_config(retriever))
+    return graph.get_state(graph_config()).values
 
 
 def reset_from(stage: str):
@@ -95,7 +135,7 @@ if files:
     if images:
         cols = st.columns(min(4, len(images)))
         for i, img in enumerate(images):
-            cols[i % len(cols)].image(img, caption=f"Page {i + 1} ({img.width}x{img.height})", use_container_width=True)
+            cols[i % len(cols)].image(img, caption=f"Page {i + 1} ({img.width}x{img.height})", width="stretch")
 
 # --- Step 2: classify ------------------------------------------------------------
 if st.session_state.get("images"):
@@ -104,7 +144,10 @@ if st.session_state.get("images"):
         with st.spinner("Orchestrator classifying..."):
             try:
                 st.session_state.urls = pipeline.image_urls(st.session_state.images)
-                st.session_state.classification = pipeline.classify(st.session_state.urls)
+                st.session_state.thread_id = uuid.uuid4().hex
+                get_graph().invoke({"urls": st.session_state.urls, "human": True,
+                                    "source_name": ", ".join(st.session_state.get("file_names", ()))}, graph_config())
+                st.session_state.classification = get_graph().get_state(graph_config()).values["classification"]
             except Exception as e:
                 st.error(f"Classification failed: {e}")
 
@@ -127,7 +170,8 @@ if st.session_state.get("chosen_type"):
         if st.button("Extract parameters", type="primary"):
             with st.spinner("Specialist reading the drawing..."):
                 try:
-                    st.session_state.extraction = pipeline.extract(st.session_state.urls, dtype)
+                    values = advance(dtype.value, {"classification": st.session_state.classification, "drawing_type": dtype})
+                    st.session_state.extraction = values["extraction"]
                 except Exception as e:
                     st.error(f"Extraction failed: {e}")
 
@@ -145,7 +189,7 @@ if st.session_state.get("chosen_type"):
             extraction_to_df(ex),
             key=f"editor_{dtype.value}_{st.session_state.get('editor_version', 0)}",
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             disabled=["key", "Parameter", "Source on drawing", "Clarification needed", "Note"],
             column_config={
                 "key": None,
@@ -159,7 +203,9 @@ if st.session_state.get("chosen_type"):
             st.session_state.editor_version = st.session_state.get("editor_version", 0) + 1  # fresh editor on new data
             reset_from("extraction")
             with st.spinner("Validator checking consistency..."):
-                st.session_state.validation = pipeline.validate(verified)
+                values = advance({"extraction": verified}, {"classification": st.session_state.classification,
+                                                            "drawing_type": dtype, "extraction": verified})
+                st.session_state.validation = values["validation"]
             st.rerun()
 
 # --- Step 4: validation ----------------------------------------------------------
@@ -173,7 +219,7 @@ if val:
         st.dataframe(
             pd.DataFrame([{"": icon.get(i.severity, ""), "Severity": i.severity, "Parameters": ", ".join(i.params),
                            "Finding": i.message, "By": i.source} for i in val.issues]),
-            hide_index=True, use_container_width=True,
+            hide_index=True, width="stretch",
         )
         if val.has_errors:
             st.warning("Errors found. Fix the values in step 3 and confirm again, or continue if you have checked them.")
@@ -192,13 +238,12 @@ if val:
                 if retriever.collection.count() == 0:
                     st.error("Knowledge base is empty. Run `python -m src.rag.ingest` first.")
                 else:
-                    results = pipeline.comply(st.session_state.extraction, val, retriever, user_notes=notes)
-                    st.session_state.results = results
-                    st.session_state.report_md = pipeline.build_report(
-                        st.session_state.extraction, val, results, st.session_state.get("classification"),
-                        overridden=st.session_state.classification.drawing_type != st.session_state.chosen_type,
-                        source_name=", ".join(st.session_state.get("file_names", ())),
-                    )
+                    values = advance({"run": True, "notes": notes},
+                                     {"classification": st.session_state.classification,
+                                      "drawing_type": st.session_state.chosen_type,
+                                      "extraction": st.session_state.extraction}, retriever)
+                    st.session_state.results = values["results"]
+                    st.session_state.report_md = values["report_markdown"]
             except Exception as e:
                 st.error(f"Compliance check failed: {e}")
 
@@ -226,8 +271,12 @@ with st.sidebar:
 3. **Engineer** - verifies and corrects values
 4. **Validator** - rule + LLM consistency checks
 5. **RAG Compliance** - per-check retrieval from IS 456 / SP 34, cited verdicts
+
+Orchestrated as a **LangGraph** state graph; the engineer steps are graph interrupts.
 """
     )
+    if paused_at():
+        st.info(f"LangGraph paused at `{paused_at()[0]}`")
     for key, label in [("classification", "Classified"), ("extraction", "Extracted"), ("validation", "Validated"), ("results", "Checked")]:
         if key in st.session_state:
             st.success(label)

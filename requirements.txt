@@ -8,14 +8,15 @@ pydantic>=2.5
 numpy
 pandas>=2.0.0
 
-# --- LLM (Gemini / OpenRouter via OpenAI SDK) ---
+# --- LLM + orchestration (Gemini / OpenRouter via OpenAI SDK, LangGraph) ---
 openai>=1.30
+langgraph>=1.0,<2      # agent workflow: state graph + human-in-the-loop interrupts
 
 # --- PDF / image preprocessing ---
 PyMuPDF>=1.24          # rasterisation + table extraction (find_tables)
 Pillow
 
 # --- UI / report ---
-streamlit>=1.32
+streamlit>=1.50,<2
 markdown>=3.4.0
 reportlab>=4.0

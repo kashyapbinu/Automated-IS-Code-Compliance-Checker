@@ -28,6 +28,28 @@ Report               markdown + PDF: summary, per-check table with clause/page, 
                      findings, verified parameters, missing/wrong information
 ```
 
+### LangGraph orchestration (`src/graph.py`)
+
+The agents run as a LangGraph `StateGraph` with a checkpointer. The engineer steps are `interrupt()`s:
+the graph pauses at `confirm_type` and `human_review` and resumes with the engineer's input. Edited values loop
+back through the Validator until the engineer releases them for the compliance check. The CLI runs the same
+graph with `human: False` (no pauses; unknown drawing types end at `unsupported`).
+
+```mermaid
+graph TD
+    START([start]) --> orchestrator
+    orchestrator -.->|UI| confirm_type
+    orchestrator -.->|CLI, known type| specialist
+    orchestrator -.->|CLI, unknown type| unsupported --> END([end])
+    confirm_type -->|engineer picks type| specialist
+    specialist --> human_review
+    human_review -.->|edited values| validator
+    validator -.->|UI: show issues| human_review
+    validator -.->|CLI| compliance
+    human_review -.->|engineer: run| compliance
+    compliance --> report --> END
+```
+
 ## Knowledge base
 
 | | |
@@ -108,7 +130,8 @@ src/
     ingest.py          codebook → chunks with metadata → Chroma
     embeddings.py      BGE wrapper
     retriever.py       filtered search + reference expansion
-  pipeline.py          stage functions used by UI and CLI
+  graph.py             LangGraph state graph: agent nodes, routing, human-in-the-loop interrupts
+  pipeline.py          stage functions (graph nodes call these)
   report.py            markdown report + PDF export
 final.py               Streamlit UI
 app.py                 CLI
