@@ -21,7 +21,8 @@ from typing import Callable, Dict, Iterable, List, Optional
 from src import config
 
 # Clause heading: "26.4.2.2 For footings ..." (title must start with a capital, so "2.5 times d" is not a clause).
-CLAUSE_RE = re.compile(r"^(?:#+\s*)?([1-9]\d?(?:\.\d{1,2}){1,3})\.?\s*([A-Z(].{0,120})")  # OCR may drop the space
+CLAUSE_RE = re.compile(r"^(?:#+\s*)?([1-9]\d?(?:\.\d{1,2}){1,3}|[A-H]-\d{1,2}(?:\.\d{1,2}){0,3})\.?\s*([A-Z(].{0,120})")  # OCR may drop the space; annex clauses "B-2.1"
+ANNEX_RE = re.compile(r"^#+\s*ANNEX\s+([A-H])\b\s*(.*)$")
 # Upper-case "SECTION 5" heading only: drawing callouts ("Section A-A", "Sections - 1:50") and
 # table-of-contents lines ("Section 4 General detailing ..... 27") are not document sections.
 SECTION_RE = re.compile(r"^(?:#+\s*)?SECTION\s+(\d{1,2})\b(?!.*\.{4})\s*(.*)$")
@@ -255,7 +256,7 @@ def chunk_blocks(blocks: Iterable[Block], source: str, doc: str, page_end: Optio
             seg: List[str] = []
             for line in block.text.splitlines():
                 s = line.strip()
-                sec = SECTION_RE.match(s)
+                sec = SECTION_RE.match(s) or ANNEX_RE.match(s)
                 cl = CLAUSE_RE.match(s)
                 if not (sec or cl) and s.startswith("#") and re.fullmatch(r"Section \d+", state["section"]):
                     state["section"] += " " + s.strip("# $").title()  # OCR puts the section title on the next heading
@@ -263,7 +264,8 @@ def chunk_blocks(blocks: Iterable[Block], source: str, doc: str, page_end: Optio
                     emit_text(seg, block.page)
                     seg = []
                     if sec:
-                        state["section"] = f"Section {sec.group(1)} {sec.group(2).strip(' #$')}".strip()
+                        kind = "Annex" if sec.re is ANNEX_RE else "Section"
+                        state["section"] = f"{kind} {sec.group(1)} {sec.group(2).strip(' #$')}".strip()
                         state["clause"], state["clause_title"] = "", ""
                     else:
                         state["clause"] = cl.group(1)
