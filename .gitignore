@@ -1,0 +1,54 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.envrc
+.python-version
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editors/IDE/OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+logs/
+*.log
+
+# Generated data / outputs
+chroma_db/
+uploads/
+reports/
+RESULT/
+first_extract/
+convertedimages/
+img-data-extr/
+docker-data/
+*.sqlite3
+
+# Codebook PDFs (copyrighted; supply locally)
+kb_sources/*.pdf
+kb_md/
+
+# Sample drawings are tracked for tests
+!sample_pdfs/

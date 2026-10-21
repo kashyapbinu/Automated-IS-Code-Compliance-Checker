@@ -1,0 +1,25 @@
+from src.schemas.base import COMMON_PARAMS, ParamSpec
+
+COLUMN_PARAMS = COMMON_PARAMS + [
+    ParamSpec("column_schedule", "Column schedule", "Is a COLUMN SCHEDULE table present? yes/no + which marks it covers."),
+    ParamSpec("column_marks", "Column marks", "Column marks covered, e.g. C1-C12."),
+    ParamSpec("column_size", "Column size (b x D)", "Cross-section of the governing column, e.g. 300 x 450.", "mm"),
+    ParamSpec("unsupported_length", "Unsupported length / floor height", "Clear height between floor/beam levels.", "mm"),
+    ParamSpec("long_bar_count", "No. of longitudinal bars", "Number of longitudinal bars in the governing column."),
+    ParamSpec("long_bar_dia", "Longitudinal bar diameter", "Diameter(s) of longitudinal bars, e.g. 16, or 4-20 + 4-16.", "mm"),
+    ParamSpec("steel_percentage", "Steel percentage", "Steel % if stated on drawing.", "%", required=False),
+    ParamSpec("tie_dia", "Lateral tie diameter", "Diameter of lateral ties.", "mm"),
+    ParamSpec("tie_spacing", "Lateral tie spacing", "Tie pitch in the general zone.", "mm"),
+    ParamSpec("tie_configuration", "Tie configuration", "Closed ties, cross ties, number of legs, arrangement."),
+    ParamSpec("tie_hook", "Tie hook angle", "Hook angle of ties (90 or 135 degree) and extension.", "deg"),
+    ParamSpec("confining_zone_length", "Confining zone length", "Special confining zone length near joints (IS 13920).", "mm", required=False),
+    ParamSpec("confining_tie_spacing", "Confining zone tie spacing", "Tie spacing within the confining zone.", "mm", required=False),
+    ParamSpec("cover_column", "Clear cover - column", "Clear cover to column longitudinal bars.", "mm"),
+    ParamSpec("lap_location", "Lap location", "Where laps are made (mid-height, staggered, % lapped at a section)."),
+    ParamSpec("bar_clear_spacing", "Clear spacing between bars", "Clear spacing between longitudinal bars if shown.", "mm", required=False),
+    ParamSpec("starter_bars", "Starter / dowel bars", "Starter bars from footing and their anchorage."),
+    ParamSpec("section_change", "Change of section / cranking", "How bars are cranked or terminated where column size changes.", required=False),
+    ParamSpec("floor_levels", "Floor levels", "Levels / storeys the schedule covers.", required=False),
+    ParamSpec("column_orientation", "Column orientation", "Orientation of the longer side shown on plan? yes/no.", required=False),
+    ParamSpec("beam_column_joint", "Beam-column joint detailing", "Ties continued through beam-column joint? yes/no.", required=False),
+]

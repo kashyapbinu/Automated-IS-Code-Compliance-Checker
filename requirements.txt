@@ -1,0 +1,27 @@
+# --- Core ---
+python-dotenv
+pydantic>=2.5
+numpy
+pandas>=2.0.0
+
+# --- LLM (OpenRouter via OpenAI SDK) ---
+openai>=1.30
+
+# --- PDF / image preprocessing ---
+PyMuPDF>=1.24          # rasterisation + table extraction (find_tables)
+Pillow
+
+# --- RAG ---
+langchain-text-splitters>=0.2
+chromadb>=0.5.0
+sentence-transformers>=2.7   # BAAI/bge-large-en-v1.5
+torch>=2.1.0
+
+# --- UI / report ---
+streamlit>=1.32
+markdown>=3.4.0
+reportlab>=4.0
+weasyprint>=59.0       # optional nicer PDF; needs GTK on Windows, reportlab is the fallback
+
+# --- Dev ---
+pytest

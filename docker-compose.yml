@@ -1,0 +1,27 @@
+services:
+  python-dev:
+    build: .
+    container_name: python-dev-env
+    volumes:
+      # Mount current directory to /app in container
+      - .:/app
+      # Preserve installed packages
+      - python-packages:/usr/local/lib/python3.11/site-packages
+    ports:
+      # Map container port 8000 to host port 8000
+      - "8000:8000"
+      # Map container port 5000 to host port 5000 (for Flask apps)
+      - "5000:5000"
+      # Map container port 8888 to host port 8888 (for Jupyter)
+      - "8888:8888"
+      # Map container port 8502 to host port 8502 (for Streamlit)
+      - "8501:8501"
+      - "8502:8502"
+    environment:
+      - PYTHONPATH=/app
+    stdin_open: true  # Keep STDIN open
+    tty: true         # Allocate a pseudo-TTY
+    command: /bin/bash  # Start with bash shell for interactive development
+
+volumes:
+  python-packages:

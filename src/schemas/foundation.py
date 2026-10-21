@@ -1,0 +1,28 @@
+from src.schemas.base import COMMON_PARAMS, ParamSpec
+
+FOUNDATION_PARAMS = COMMON_PARAMS + [
+    ParamSpec("notes_section", "NOTES section", "Is a dedicated NOTES section present (distinct from GENERAL NOTES)? yes/no."),
+    ParamSpec("cover_footing", "Clear cover - footing", "Clear cover to footing reinforcement.", "mm"),
+    ParamSpec("cover_column", "Clear cover - column/pedestal", "Clear cover to column / pedestal bars.", "mm"),
+    ParamSpec("pcc_below_footing", "PCC below footing", "Lean concrete / PCC bed grade and thickness, e.g. M10 100 thk."),
+    ParamSpec("sbc", "Safe bearing capacity", "Safe bearing capacity of soil.", "kN/m2"),
+    ParamSpec("founding_depth", "Founding depth", "Depth of foundation below ground level.", "mm"),
+    ParamSpec("wind_load", "Wind load", "Basic wind speed / wind load basis (IS 875 Part 3).", "m/s", required=False),
+    ParamSpec("building_storeys", "Building limitations / storeys", "Number of storeys or height the foundation is designed for."),
+    ParamSpec("structure_purpose", "Structure purpose", "Building use / which block the drawing is for."),
+    ParamSpec("floor_height", "Floor height", "Floor-to-floor height.", "mm", required=False),
+    ParamSpec("footing_schedule", "Schedule of footings", "Is a SCHEDULE OF FOOTINGS table present and consistent with the plan? yes/no + remarks."),
+    ParamSpec("footing_type", "Footing type", "Isolated / combined / strip / raft / pile cap."),
+    ParamSpec("footing_size", "Footing size (L x B)", "Plan dimensions of a typical footing, e.g. 1800 x 1800.", "mm"),
+    ParamSpec("footing_depth", "Footing depth", "Overall depth at edge and at column face, e.g. 300 edge / 450 centre.", "mm"),
+    ParamSpec("footing_bottom_bars", "Footing bottom reinforcement", "Bottom mesh in both directions, e.g. T12@150 c/c B/W."),
+    ParamSpec("footing_top_bars", "Footing top reinforcement", "Top reinforcement if any (mandatory for rafts).", required=False),
+    ParamSpec("column_size", "Column / pedestal size", "Typical column starter size, e.g. 230 x 450.", "mm"),
+    ParamSpec("column_long_bars", "Column starter bars", "Number and diameter of column starter bars, e.g. 6-16 dia."),
+    ParamSpec("column_ties", "Column ties", "Tie diameter and spacing, e.g. 8 dia @ 150 c/c."),
+    ParamSpec("ties_continuous", "Ties continuous into footing", "Are column ties shown continuous into the footing? yes/no."),
+    ParamSpec("plan_of_ties", "Plan of ties", "Is a separate tie arrangement plan / section shown? yes/no.", required=False),
+    ParamSpec("lift_pit", "Lift pit", "Lift pit depth and reinforcement if a lift exists.", "mm", required=False),
+    ParamSpec("soil_improvement", "Soil improvement", "Any soil improvement / replacement notes.", required=False),
+    ParamSpec("steel_curtailment", "Steel curtailment", "Reduction of bar diameter / curtailment in upper floors.", required=False),
+]

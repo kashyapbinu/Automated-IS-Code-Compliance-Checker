@@ -1,0 +1,26 @@
+from src.schemas.base import COMMON_PARAMS, ParamSpec
+
+BEAM_PARAMS = COMMON_PARAMS + [
+    ParamSpec("beam_schedule", "Beam schedule", "Is a BEAM SCHEDULE table present? yes/no."),
+    ParamSpec("beam_marks", "Beam marks", "Beam marks covered, e.g. B1-B10."),
+    ParamSpec("beam_width", "Beam width (b)", "Width of the governing beam.", "mm"),
+    ParamSpec("beam_depth", "Beam overall depth (D)", "Overall depth of the governing beam.", "mm"),
+    ParamSpec("clear_span", "Clear span", "Clear span of the governing beam.", "mm"),
+    ParamSpec("support_condition", "Support condition", "Simply supported / continuous / cantilever."),
+    ParamSpec("bottom_bars", "Bottom bars", "Main bottom reinforcement, e.g. 3-16 dia."),
+    ParamSpec("top_bars", "Top bars", "Continuous top / hanger bars, e.g. 2-12 dia."),
+    ParamSpec("extra_top_bars", "Extra top bars at supports", "Additional top bars at supports and their extension (e.g. L/3)."),
+    ParamSpec("extra_bottom_bars", "Extra bottom bars", "Additional bottom bars at mid-span and curtailment.", required=False),
+    ParamSpec("stirrup_dia", "Stirrup diameter", "Stirrup bar diameter.", "mm"),
+    ParamSpec("stirrup_legs", "Stirrup legs", "Number of stirrup legs."),
+    ParamSpec("stirrup_spacing_support", "Stirrup spacing near support", "Stirrup spacing within 2d of supports.", "mm"),
+    ParamSpec("stirrup_spacing_mid", "Stirrup spacing at mid-span", "Stirrup spacing in the middle zone.", "mm"),
+    ParamSpec("side_face_bars", "Side face reinforcement", "Side face bars (required when D > 750 mm).", required=False),
+    ParamSpec("cover_beam", "Clear cover - beam", "Clear cover to beam main bars.", "mm"),
+    ParamSpec("lap_location", "Lap location", "Where laps are placed (top bars at mid-span, bottom near supports)."),
+    ParamSpec("end_anchorage", "Anchorage at end supports", "How bottom/top bars are anchored into end supports."),
+    ParamSpec("bar_clear_spacing", "Clear spacing between bars", "Horizontal clear distance between bars if shown.", "mm", required=False),
+    ParamSpec("torsion_details", "Torsion reinforcement", "Torsion / closed stirrups for edge or spandrel beams.", required=False),
+    ParamSpec("stirrup_hook", "Stirrup hook", "135 degree hooks with 10d extension shown? yes/no.", required=False),
+    ParamSpec("bar_bending_schedule", "Bar bending schedule", "Is a bar bending schedule present? yes/no.", required=False),
+]
