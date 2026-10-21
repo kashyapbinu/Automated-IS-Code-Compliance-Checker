@@ -286,7 +286,7 @@ def collect_chunks(describe_figures: bool = False, include_markdown: bool = True
     """Per PDF page, the best available text wins:
     1. kb_md/<pdf stem>/pNNNN.md (Gemini re-OCR via src.rag.ocr: text, tables and figures),
     2. SP34_md/ OCR markdown covering that page range (text/tables; figures still from the PDF),
-    3. the PDF's own text layer."""
+    3. the PDF's own text layer (only for PDFs with no re-OCR'd pages)."""
     chunks: List[Chunk] = []
     describe = gemini_describer if describe_figures else None
 
@@ -302,8 +302,13 @@ def collect_chunks(describe_figures: bool = False, include_markdown: bool = True
         source = source_for(path)
         ocr_pages = {int(p.stem[1:]): p for p in (config.KB_OCR_DIR / path.stem).glob("p[0-9]*.md")}
         print(f"PDF  {path.name} ({source}, {len(ocr_pages)} re-OCR'd page(s))")
-        blocks = [b for b in blocks_from_pdf(path, describe, skip_text_pages=md_pages.get(source, set()) | set(ocr_pages))
-                  if b.page not in ocr_pages]
+        if ocr_pages:
+            # A re-OCR'd PDF has an unusable text layer: pages that were not re-OCR'd (front matter,
+            # committee lists) are dropped instead of indexing garbled text. PDF figures are still described.
+            pdf_blocks = blocks_from_pdf(path, describe, skip_text_pages=set(range(1, 10_000))) if describe else []
+        else:
+            pdf_blocks = blocks_from_pdf(path, describe, skip_text_pages=md_pages.get(source, set()))
+        blocks = [b for b in pdf_blocks if b.page not in ocr_pages]
         for pno, md in ocr_pages.items():
             blocks += blocks_from_markdown(md.read_text(encoding="utf-8"), pno)
         blocks.sort(key=lambda b: b.page or 0)  # stable: keeps reading order within a page
