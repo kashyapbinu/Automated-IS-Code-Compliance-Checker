@@ -361,6 +361,10 @@ def ingest(reset: bool = False, describe_figures: bool = False, include_markdown
         key = f"{c.metadata['source']}/{c.metadata['type']}"
         by_type[key] = by_type.get(key, 0) + 1
     print(f"Done: {collection.count()} chunks in '{config.COLLECTION_NAME}'. {by_type}")
+
+    from src.rag.index_store import export
+
+    export(collection, embedder)  # portable numpy copy for deployments without Chroma/torch
     return collection
 
 

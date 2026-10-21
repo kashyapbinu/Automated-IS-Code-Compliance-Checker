@@ -47,6 +47,9 @@ RETRIEVE_K = int(os.getenv("RETRIEVE_K", "4"))
 KB_SOURCES_DIR = Path(os.getenv("KB_SOURCES_DIR", ROOT_DIR / "kb_sources"))
 KB_MARKDOWN_DIR = Path(os.getenv("KB_MARKDOWN_DIR", ROOT_DIR / "SP34_md"))
 KB_OCR_DIR = Path(os.getenv("KB_OCR_DIR", ROOT_DIR / "kb_md"))  # per-page Gemini OCR of kb_sources PDFs
+# Exported numpy index (src.rag.index_store) for deployments without Chroma/torch.
+KB_INDEX_DIR = Path(os.getenv("KB_INDEX_DIR", ROOT_DIR / "kb_index"))
+VECTOR_BACKEND = os.getenv("VECTOR_BACKEND", "auto")  # auto | chroma | numpy
 
 # --- Output ---
 REPORTS_DIR = ROOT_DIR / "reports"

@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import re
 import uuid
@@ -7,6 +8,10 @@ import pytest
 from src import config
 from src.rag import ingest
 from src.rag.retriever import Retriever
+
+# Chunking needs the KB-build deps (requirements-kb.txt); runtime-only installs skip these tests.
+needs_splitter = pytest.mark.skipif(importlib.util.find_spec("langchain_text_splitters") is None,
+                                    reason="requirements-kb.txt not installed")
 
 SAMPLE_MD = """# SECTION 3 GENERAL DESIGN CONSIDERATION
 
@@ -35,6 +40,7 @@ def test_markdown_blocks_split_tables():
     assert blocks[1].label == "table 16"
 
 
+@needs_splitter
 def test_chunks_carry_clause_metadata():
     chunks = ingest.chunk_blocks(ingest.blocks_from_markdown(SAMPLE_MD, page=27), "IS456", "is456.md")
     by_clause = {c.metadata["clause"]: c for c in chunks if c.metadata["type"] == "text"}
@@ -49,6 +55,7 @@ def test_chunks_carry_clause_metadata():
     assert all(len(c.text) < config.CHUNK_SIZE + 120 for c in chunks if c.metadata["type"] == "text")
 
 
+@needs_splitter
 def test_chunk_ids_are_stable():
     a = ingest.chunk_blocks(ingest.blocks_from_markdown(SAMPLE_MD, 1), "IS456", "x.md")
     b = ingest.chunk_blocks(ingest.blocks_from_markdown(SAMPLE_MD, 1), "IS456", "x.md")
@@ -56,6 +63,7 @@ def test_chunk_ids_are_stable():
     assert len({c.id for c in a}) == len(a)
 
 
+@needs_splitter
 def test_repo_markdown_kb_chunks(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "KB_SOURCES_DIR", tmp_path)  # markdown only, don't parse the codebook PDFs
     chunks = ingest.collect_chunks(include_markdown=True)
@@ -88,6 +96,36 @@ def test_retrieve_with_filter_and_table_expansion(mem_collection, fake_embedder)
     expanded = [h for h in hits if h.expanded_from]
     assert expanded and expanded[0].metadata["label"] == "table 16"
     assert r.retrieve("cover", k=2, where={"source": "SP34"}) == []
+
+
+def test_numpy_index_matches_chroma(mem_collection, fake_embedder, tmp_path):
+    from src.rag import index_store
+
+    query = "nominal cover durability exposure column 40 mm"
+    index_store.export(mem_collection, fake_embedder, queries=[query], index_dir=tmp_path)
+    np_retriever = Retriever(index_store.NumpyCollection.load(tmp_path), index_store.PrecomputedEmbedder.load(tmp_path))
+    chroma_retriever = Retriever(mem_collection, fake_embedder)
+    for where in ({"source": "IS456"}, {"$and": [{"source": "IS456"}, {"type": "text"}]},
+                  {"source": {"$in": ["IS456", "SP34"]}}):
+        a = chroma_retriever.retrieve(query, k=2, where=where)
+        b = np_retriever.retrieve(query, k=2, where=where)
+        assert [h.id for h in a] == [h.id for h in b]
+        assert all(abs(x.score - y.score) < 1e-4 for x, y in zip(a, b) if x.score is not None)
+    assert np_retriever.retrieve(query, k=2, where={"source": "SP34"}) == []
+
+
+def test_precomputed_embedder_rejects_unknown_query_without_model(monkeypatch):
+    import builtins
+
+    from src.rag.index_store import PrecomputedEmbedder
+
+    real_import = builtins.__import__
+    monkeypatch.setattr(builtins, "__import__", lambda name, *a, **k: (_ for _ in ()).throw(ImportError(name))
+                        if name == "src.rag.embeddings" else real_import(name, *a, **k))
+    emb = PrecomputedEmbedder(["known"], __import__("numpy").ones((1, 3)))
+    assert emb.embed_query("known") == [1.0, 1.0, 1.0]
+    with pytest.raises(KeyError):
+        emb.embed_query("unknown query")
 
 
 @pytest.mark.skipif(not os.getenv("RUN_RECALL"), reason="set RUN_RECALL=1 after building the real KB")

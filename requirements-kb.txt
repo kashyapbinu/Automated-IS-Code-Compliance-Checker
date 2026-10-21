@@ -1,0 +1,15 @@
+# Knowledge-base build + local dev (on top of requirements.txt):
+#   pip install -r requirements.txt -r requirements-kb.txt
+#   python -m src.rag.ingest --reset      # also exports kb_index/
+
+# --- RAG build ---
+langchain-text-splitters>=0.2
+chromadb>=0.5.0
+sentence-transformers>=2.7   # BAAI/bge-large-en-v1.5
+torch>=2.1.0
+
+# --- Optional nicer PDF reports (needs GTK on Windows; reportlab is the fallback) ---
+weasyprint>=59.0
+
+# --- Dev ---
+pytest

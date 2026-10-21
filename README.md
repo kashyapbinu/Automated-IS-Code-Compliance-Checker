@@ -38,18 +38,25 @@ Report               markdown + PDF: summary, per-check table with clause/page, 
 | Chunking | `RecursiveCharacterTextSplitter`, 700 characters, 150 overlap, split at clause boundaries |
 | Embeddings | `BAAI/bge-large-en-v1.5` (1024-d, normalised, BGE query instruction on queries) |
 | Store | ChromaDB collection `is_codes_v2` (cosine), idempotent upserts with stable chunk ids |
+| Deploy index | `kb_index/`: the same BGE-large vectors + every check query's vector, exported to numpy (`src/rag/index_store.py`) |
 | Retrieval | metadata filter by codebook + expansion: tables/figures referenced by a hit (“see Table 16”) are pulled in |
+
+Retrieval queries are fixed per compliance check, so their BGE-large vectors are precomputed at ingest time.
+A deployment therefore needs only numpy: no torch, no embedding model, no Chroma (`VECTOR_BACKEND=auto`
+picks `kb_index/` when those are not installed). After changing a check query, re-run
+`python -m src.rag.index_store`.
 
 ## Setup
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt   # CPU torch: add --extra-index-url https://download.pytorch.org/whl/cpu
-copy .env.example .env            # then set OPENROUTER_API_KEY
+pip install -r requirements.txt                       # runtime: enough to run the app on kb_index/
+pip install -r requirements-kb.txt                    # KB build + tests (torch, BGE, Chroma)
+copy .env.example .env            # then set the API keys
 ```
 
-Build the knowledge base (downloads the BGE model on first run, ~1.3 GB):
+Build the knowledge base (downloads the BGE model on first run, ~1.3 GB; also re-exports `kb_index/`):
 
 ```bash
 # optional but recommended: put IS456.pdf and SP34.pdf in kb_sources/
@@ -67,6 +74,13 @@ streamlit run final.py                       # UI with human verification
 python app.py sample_pdfs/7.pdf --json out.json   # CLI, no human step
 python app.py drawing.pdf --type beam        # skip classification
 ```
+
+## Deploy (Streamlit Community Cloud)
+
+1. share.streamlit.io → **Create app** → this repo, branch `main`, main file `final.py`.
+2. Advanced settings → Python 3.12, and paste the `.env` values as secrets (TOML, e.g. `LLM_BASE_URL = "..."`);
+   top-level secrets are exposed as environment variables, which `src/config.py` reads.
+3. Deploy. Only `requirements.txt` is installed; retrieval runs on the committed `kb_index/`.
 
 ## Tests
 

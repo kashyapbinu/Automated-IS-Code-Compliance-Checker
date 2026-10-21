@@ -28,8 +28,29 @@ class Hit:
         return ", ".join(parts)
 
 
+def use_numpy_index() -> bool:
+    """VECTOR_BACKEND=numpy|chroma; "auto" uses the exported kb_index/ when Chroma or the BGE model is not installed."""
+    from src.rag.index_store import index_available
+
+    backend = config.VECTOR_BACKEND
+    if backend in ("numpy", "chroma"):
+        return backend == "numpy"
+    if not index_available():
+        return False
+    try:
+        import chromadb  # noqa: F401
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        return True
+    return False
+
+
 class Retriever:
     def __init__(self, collection=None, embedder=None):
+        if collection is None and embedder is None and use_numpy_index():
+            from src.rag.index_store import load_index
+
+            collection, embedder = load_index()
         if collection is None:
             from src.rag.ingest import get_collection
 
